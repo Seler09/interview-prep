@@ -93,19 +93,51 @@ button { cursor: pointer; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
 
-.container { max-width: 860px; margin: 0 auto; padding: 8px 16px 48px; }
+/* ============ APP SHELL ============ */
+/* The page itself never scrolls: header + scroller + dock fill the viewport.
+   This avoids position:fixed/sticky bugs with mobile browser toolbars (iOS). */
+html, body { height: 100%; }
+body { overflow: hidden; }
+.app {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+.dock {
+  flex: none;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 18px rgba(20, 24, 50, .06);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+body:not(.learn-active) .actions,
+body:not(.has-actions) .actions { display: none; }
+/* desktop: the dock only holds the answer/rating bar */
+body:not(.learn-active) .dock,
+body:not(.has-actions) .dock { display: none; }
+
+.container { max-width: 860px; margin: 0 auto; padding: 8px 16px 32px; }
 .view, .card, .answer, .followups { min-width: 0; }
 .answer { overflow-wrap: anywhere; }
 
 /* ============ TOPBAR / NAV ============ */
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: color-mix(in srgb, var(--bg) 75%, transparent);
-  backdrop-filter: saturate(180%) blur(14px);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  flex: none;
+  position: relative;
+  z-index: 2;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  padding-top: env(safe-area-inset-top);
 }
 .topbar-inner {
   max-width: 860px;
@@ -316,7 +348,9 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 
 kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; line-height: 1.5; }
 
-.actions { margin-top: 16px; }
+.actions { padding: 12px 16px; }
+.actions > * { width: 100%; max-width: 828px; margin-left: auto; margin-right: auto; }
+.tabs-bottom { display: none; }
 .rate { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .rate-btn { min-height: 58px; border-width: 1.5px; }
 .rate-emoji { font-size: 1.15rem; }
@@ -408,10 +442,10 @@ kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px soli
 
 /* ============ TOAST ============ */
 .toast {
-  position: fixed;
+  position: absolute;               /* inside .app, which never scrolls */
   left: 50%;
-  bottom: calc(24px + var(--nav-h) + var(--toast-extra, 0px) + env(safe-area-inset-bottom));
-  transform: translate(-50%, 20px);
+  top: calc(72px + env(safe-area-inset-top));
+  transform: translate(-50%, -12px);
   background: var(--text);
   color: var(--bg);
   padding: 10px 18px;
@@ -432,34 +466,28 @@ kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px soli
 @media (hover: none) { kbd { display: none; } }
 
 @media (max-width: 720px) {
-  :root { --nav-h: 64px; --actions-h: 86px; }
   kbd { display: none; }
-  body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px); }
-  /* in Study view the fixed answer/rating bar sits above the nav: reserve room for both */
-  body.learn-active { --toast-extra: var(--actions-h); }
-  body.learn-active { padding-bottom: calc(var(--nav-h) + var(--actions-h) + env(safe-area-inset-bottom) + 16px); }
 
-  /* backdrop-filter tworzy containing block dla position:fixed — wyłączamy, żeby dolny pasek działał */
-  .topbar { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg); }
-  .topbar-inner { padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top)); }
+  .topbar { background: var(--bg); }
+  .topbar-inner { padding: 10px 16px; }
   .mastery-pill { margin-left: auto; }
 
-  .tabs {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 30;
-    margin: 0;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-    height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  /* mobile: the dock always shows the bottom nav; the answer bar sits above it in Study */
+  body:not(.learn-active) .dock,
+  body:not(.has-actions) .dock { display: block; }
+  .tabs-top { display: none; }
+  .tabs-bottom {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin: 0;
+    padding: 6px 8px;
     border-radius: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
+    background: transparent;
   }
-  .tab { flex-direction: column; justify-content: center; gap: 3px; font-size: .72rem; padding: 4px; }
+  body.learn-active.has-actions .tabs-bottom { border-top: 1px solid var(--border); }
+  .actions { padding: 10px 12px; }
+  .tab { flex-direction: column; justify-content: center; gap: 3px; font-size: .72rem; padding: 6px 4px; min-height: 52px; }
   .tab svg { width: 22px; height: 22px; }
   .tab.active { background: var(--accent-soft); box-shadow: none; }
 
@@ -471,24 +499,6 @@ kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px soli
   .answer { font-size: .97rem; }
   pre { font-size: .8rem; padding: 12px; }
 
-  /* answer / rating bar pinned above the bottom nav, solid so it never overlaps content */
-  .actions {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
-    z-index: 25;
-    margin: 0;
-    padding: 10px 16px;
-    min-height: var(--actions-h);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: var(--bg);
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -6px 16px rgba(0, 0, 0, .08);
-  }
-  .actions > * { width: 100%; max-width: 860px; margin: 0 auto; }
   .rate { gap: 8px; }
   .rate-btn { flex-direction: column; gap: 2px; min-height: 64px; padding: 8px 4px; font-size: .86rem; }
   .rate-emoji { font-size: 1.3rem; }

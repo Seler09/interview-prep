@@ -287,6 +287,7 @@
     $('#card').hidden = !has;
     $('#actions').hidden = !has;
     $('#done').hidden = has;
+    document.body.classList.toggle('has-actions', has);
     updateSessionBar();
 
     if (!has) return showDone();
@@ -311,8 +312,10 @@
     $('#reveal').hidden = false;
     $('#rate').hidden = true;
 
-    const top = card.getBoundingClientRect().top;
-    if (top < 0) window.scrollTo({ top: window.scrollY + top - 90, behavior: 'smooth' });
+    // new question: bring the card into view inside the scroll container
+    const scroller = $('#scroller');
+    const offset = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    if (offset < 0) scroller.scrollTo({ top: scroller.scrollTop + offset - 12, behavior: 'smooth' });
   }
 
   function showDone() {
@@ -526,7 +529,7 @@
     if (name === 'stats') renderStats();
     if (name === 'browse') renderBrowse();
     try { localStorage.setItem(KEYS.view, name); } catch { /* ignore */ }
-    window.scrollTo({ top: 0 });
+    $('#scroller').scrollTo({ top: 0 });
   }
 
   // =====================================================================
