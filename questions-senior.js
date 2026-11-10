@@ -3,8 +3,8 @@
   Format jak w questions.js + opcjonalne pole:
     followUps – lista pytań pogłębiających, które rekruter może zadać dalej
 */
-window.QUESTIONS = window.QUESTIONS || [];
-window.QUESTIONS.push(
+(() => {
+const SENIOR = [
   // =====================================================================
   // SYSTEM DESIGN
   // =====================================================================
@@ -1286,4 +1286,9 @@ Senior jest partnerem dla biznesu, a nie przeszkodą ani bezkrytycznym wykonawc�
 
 Unikaj pytań, na które odpowiedź jest na pierwszej stronie ich strony www.`,
   },
-);
+];
+
+SENIOR.forEach(q => { q.level = 'senior'; });
+window.QUESTIONS = window.QUESTIONS || [];
+window.QUESTIONS.push(...SENIOR);
+})();
