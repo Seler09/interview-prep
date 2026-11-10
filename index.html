@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Rekru · pytania rekrutacyjne</title>
-  <meta name="description" content="Fiszki do nauki pytań rekrutacyjnych: od podstaw do poziomu senior. Postęp zapisuje się w przeglądarce, bez zakładania konta.">
+  <title>Rekru · Interview Prep</title>
+  <meta name="description" content="Flashcards for technical interview prep, from fundamentals to senior level. Progress is saved in your browser, with no account needed.">
   <meta name="theme-color" content="#f5f6fb" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0e1018" media="(prefers-color-scheme: dark)">
   <meta name="mobile-web-app-capable" content="yes">
@@ -14,29 +14,30 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <!-- Bump ?v= on every release so browsers don't mix cached old files with new ones -->
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand"><span class="brand-icon">🎯</span><span class="brand-name">Rekru</span></div>
 
-      <nav class="tabs" aria-label="Widoki">
+      <nav class="tabs" aria-label="Views">
         <button type="button" class="tab active" data-view="learn">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h11.5A2.5 2.5 0 0 1 21 5.5V17"/></svg>
-          <span>Nauka</span>
+          <span>Study</span>
         </button>
         <button type="button" class="tab" data-view="browse">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
-          <span>Przeglądaj</span>
+          <span>Browse</span>
         </button>
         <button type="button" class="tab" data-view="stats">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M22 20H2"/></svg>
-          <span>Postęp</span>
+          <span>Progress</span>
         </button>
       </nav>
 
-      <div class="mastery-pill" title="Opanowane pytania (wszystkie)">
+      <div class="mastery-pill" title="Mastered questions (all)">
         <span class="mastery-dot"></span><span id="mastery-pill">0%</span>
       </div>
     </div>
@@ -46,32 +47,32 @@
     <details class="filters" id="filters">
       <summary>
         <svg class="filters-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
-        <span class="filters-title">Filtry</span>
+        <span class="filters-title">Filters</span>
         <span id="filters-summary" class="filters-summary"></span>
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </summary>
       <div class="filters-body">
         <div class="filter-group">
-          <span class="filter-label">Zestaw</span>
+          <span class="filter-label">Track</span>
           <div id="level-filters" class="chips"></div>
         </div>
         <div class="filter-group">
-          <span class="filter-label">Kategorie</span>
+          <span class="filter-label">Categories</span>
           <div id="category-filters" class="chips"></div>
         </div>
         <div class="filter-group">
-          <span class="filter-label">Trudność</span>
+          <span class="filter-label">Difficulty</span>
           <div id="difficulty-filters" class="chips"></div>
         </div>
       </div>
     </details>
 
-    <!-- NAUKA -->
+    <!-- STUDY -->
     <section id="view-learn" class="view">
       <div class="session-head">
         <div class="session-meta">
           <span id="session-info"></span>
-          <button type="button" id="restart" class="link-btn">↻ Nowa sesja</button>
+          <button type="button" id="restart" class="link-btn">↻ New session</button>
         </div>
         <div class="progress-track"><div id="session-bar" class="progress-fill"></div></div>
       </div>
@@ -81,19 +82,19 @@
           <span id="card-level" class="badge badge-senior" hidden>Senior</span>
           <span id="card-category" class="badge badge-cat"></span>
           <span id="card-difficulty" class="badge"></span>
-          <span id="card-box" class="box-dots" title="Poziom opanowania"></span>
+          <span id="card-box" class="box-dots" title="Mastery level"></span>
         </div>
         <h2 id="card-question" class="question"></h2>
-        <p id="tap-hint" class="tap-hint">Odpowiedz na głos, a potem odkryj odpowiedź</p>
+        <p id="tap-hint" class="tap-hint">Answer out loud first, then reveal the answer</p>
         <div id="card-answer" class="answer" hidden></div>
       </article>
 
       <div id="actions" class="actions">
-        <button type="button" id="reveal" class="btn btn-primary btn-lg">Pokaż odpowiedź <kbd>Spacja</kbd></button>
+        <button type="button" id="reveal" class="btn btn-primary btn-lg">Show answer <kbd>Space</kbd></button>
         <div id="rate" class="rate" hidden>
-          <button type="button" data-rate="0" class="btn rate-btn bad"><span class="rate-emoji">😵</span><span>Nie umiem</span><kbd>1</kbd></button>
-          <button type="button" data-rate="1" class="btn rate-btn mid"><span class="rate-emoji">🤔</span><span>Tak sobie</span><kbd>2</kbd></button>
-          <button type="button" data-rate="2" class="btn rate-btn good"><span class="rate-emoji">💪</span><span>Umiem</span><kbd>3</kbd></button>
+          <button type="button" data-rate="0" class="btn rate-btn bad"><span class="rate-emoji">😵</span><span>Didn't know</span><kbd>1</kbd></button>
+          <button type="button" data-rate="1" class="btn rate-btn mid"><span class="rate-emoji">🤔</span><span>Partly</span><kbd>2</kbd></button>
+          <button type="button" data-rate="2" class="btn rate-btn good"><span class="rate-emoji">💪</span><span>Nailed it</span><kbd>3</kbd></button>
         </div>
       </div>
 
@@ -102,53 +103,53 @@
         <h2 id="done-title"></h2>
         <p id="done-text" class="muted"></p>
         <div id="done-stats" class="done-stats"></div>
-        <button type="button" id="done-restart" class="btn btn-primary btn-lg">Kolejna sesja</button>
+        <button type="button" id="done-restart" class="btn btn-primary btn-lg">Next session</button>
       </div>
     </section>
 
-    <!-- PRZEGLĄDANIE -->
+    <!-- BROWSE -->
     <section id="view-browse" class="view" hidden>
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
-        <input id="search" type="search" placeholder="Szukaj w pytaniach i odpowiedziach…" autocomplete="off" enterkeyhint="search">
+        <input id="search" type="search" placeholder="Search questions and answers…" autocomplete="off" enterkeyhint="search">
       </div>
       <p id="browse-count" class="muted small"></p>
       <div id="list" class="list"></div>
     </section>
 
-    <!-- POSTĘP -->
+    <!-- PROGRESS -->
     <section id="view-stats" class="view" hidden>
       <div class="card stats-hero">
         <div class="ring" id="ring">
-          <div class="ring-inner"><strong id="ring-value">0%</strong><span>opanowane</span></div>
+          <div class="ring-inner"><strong id="ring-value">0%</strong><span>mastered</span></div>
         </div>
         <div class="hero-numbers">
-          <div class="num good"><strong id="st-good">0</strong><span>opanowane</span></div>
-          <div class="num mid"><strong id="st-mid">0</strong><span>w trakcie</span></div>
-          <div class="num"><strong id="st-new">0</strong><span>nowe</span></div>
-          <div class="num"><strong id="st-today">0</strong><span>odpowiedzi dziś</span></div>
-          <div class="num"><strong id="st-streak">0</strong><span>dni z rzędu 🔥</span></div>
-          <div class="num"><strong id="st-total">0</strong><span>odpowiedzi łącznie</span></div>
+          <div class="num good"><strong id="st-good">0</strong><span>mastered</span></div>
+          <div class="num mid"><strong id="st-mid">0</strong><span>learning</span></div>
+          <div class="num"><strong id="st-new">0</strong><span>new</span></div>
+          <div class="num"><strong id="st-today">0</strong><span>answers today</span></div>
+          <div class="num"><strong id="st-streak">0</strong><span>day streak 🔥</span></div>
+          <div class="num"><strong id="st-total">0</strong><span>answers total</span></div>
         </div>
       </div>
-      <p class="muted small scope-note">Statystyki dotyczą pytań z aktualnych filtrów.</p>
+      <p class="muted small scope-note">Stats reflect the questions matching your current filters.</p>
 
-      <h3 class="section-title">Kategorie</h3>
+      <h3 class="section-title">Categories</h3>
       <div id="stats-cats" class="stats-cats"></div>
 
       <div class="card settings">
-        <h3>💾 Twój postęp</h3>
-        <p class="muted small">Postęp zapisuje się <strong>automatycznie w tej przeglądarce</strong> (localStorage), bez kont i logowania. Każde urządzenie i każda przeglądarka ma osobny postęp. Możesz go przenieść eksportem i importem.</p>
+        <h3>💾 Your progress</h3>
+        <p class="muted small">Progress is saved <strong>automatically in this browser</strong> (localStorage), with no account or sign-in. Each device and browser keeps its own progress. You can move it with export and import.</p>
         <div class="btn-row">
-          <button type="button" id="export" class="btn">⬇ Eksportuj do pliku</button>
-          <label class="btn">⬆ Importuj z pliku<input type="file" id="import" accept="application/json,.json" hidden></label>
+          <button type="button" id="export" class="btn">⬇ Export to file</button>
+          <label class="btn">⬆ Import from file<input type="file" id="import" accept="application/json,.json" hidden></label>
         </div>
 
         <div class="danger-zone">
-          <h4>Reset postępu</h4>
+          <h4>Reset progress</h4>
           <div class="btn-row">
-            <button type="button" id="reset-filtered" class="btn btn-danger-outline">Resetuj wybrane filtry</button>
-            <button type="button" id="reset" class="btn btn-danger">Resetuj cały postęp</button>
+            <button type="button" id="reset-filtered" class="btn btn-danger-outline">Reset current filters</button>
+            <button type="button" id="reset" class="btn btn-danger">Reset all progress</button>
           </div>
         </div>
       </div>
@@ -157,8 +158,11 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="questions.js"></script>
-  <script src="questions-senior.js"></script>
-  <script src="app.js"></script>
+  <script src="questions.js?v=4"></script>
+  <script src="questions-senior-design.js?v=4"></script>
+  <script src="questions-senior-data-arch.js?v=4"></script>
+  <script src="questions-senior-stack.js?v=4"></script>
+  <script src="questions-senior-ops-lead.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

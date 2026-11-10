@@ -2,25 +2,25 @@
   'use strict';
 
   // =====================================================================
-  // KONFIGURACJA
+  // CONFIG
   // =====================================================================
   const QUESTIONS = (window.QUESTIONS || []).filter(q => q && q.id && q.question);
   const KEYS = {
     progress: 'rekru:progress:v1',   // { [id]: { box, seen, lastSeen } }
     filters: 'rekru:filters:v1',
-    activity: 'rekru:activity:v1',   // { days: { 'YYYY-MM-DD': liczba odpowiedzi } }
+    activity: 'rekru:activity:v1',   // { days: { 'YYYY-MM-DD': answers } }
     view: 'rekru:view:v1',
   };
-  const SESSION_SIZE = 20;   // pytań w jednej sesji
-  const MAX_BOX = 5;         // poziomy opanowania (system Leitnera)
-  const MASTERED_BOX = 3;    // od tego poziomu pytanie jest „opanowane”
-  const DIFF = { 1: 'Łatwe', 2: 'Średnie', 3: 'Trudne' };
-  const LEVELS = { all: 'Wszystko', basic: 'Podstawy', senior: 'Senior' };
+  const SESSION_SIZE = 20;   // questions per session
+  const MAX_BOX = 5;         // mastery levels (Leitner system)
+  const MASTERED_BOX = 3;    // from this level a question counts as "mastered"
+  const DIFF = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
+  const LEVELS = { all: 'All', basic: 'Fundamentals', senior: 'Senior' };
 
   const $ = s => document.querySelector(s);
 
   // =====================================================================
-  // LOCAL STORAGE (postęp bez kont: wszystko zostaje w tej przeglądarce)
+  // LOCAL STORAGE (no accounts: everything stays in this browser)
   // =====================================================================
   let storageOk = true;
   try {
@@ -39,7 +39,7 @@
     }
   }
   function saveJSON(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* brak miejsca / tryb prywatny */ }
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* quota / private mode */ }
   }
 
   let progress = loadJSON(KEYS.progress, {});
@@ -58,7 +58,7 @@
   });
 
   // =====================================================================
-  // POMOCNICZE
+  // HELPERS
   // =====================================================================
   const levelOf = q => (q.level === 'senior' ? 'senior' : 'basic');
   const diffOf = q => q.difficulty || 1;
@@ -71,7 +71,7 @@
     (!filters.difficulty.size || filters.difficulty.has(diffOf(q)));
   const filtered = () => QUESTIONS.filter(matches);
 
-  const allCategories = [...new Set(QUESTIONS.map(q => q.category))]; // kolejność z plików
+  const allCategories = [...new Set(QUESTIONS.map(q => q.category))]; // file order
   const levelCategories = () => allCategories.filter(c => QUESTIONS.some(q => q.category === c && inLevel(q)));
   function pruneCategories() {
     const valid = levelCategories();
@@ -90,12 +90,7 @@
     return a;
   }
 
-  const plural = (n, one, few, many) => {
-    if (n === 1) return one;
-    const d = n % 10, dd = n % 100;
-    return d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? few : many;
-  };
-  const pytan = n => `${n} ${plural(n, 'pytanie', 'pytania', 'pytań')}`;
+  const nq = n => `${n} ${n === 1 ? 'question' : 'questions'}`;
 
   let toastTimer;
   function toast(msg) {
@@ -112,8 +107,8 @@
   }
 
   // =====================================================================
-  // MINI MARKDOWN: ```kod```, `kod`, **pogrubienie**, listy "- " / "1. ",
-  // podpunkty wcięte 2 spacjami, pusta linia = nowy akapit
+  // MINI MARKDOWN: ```code```, `code`, **bold**, lists "- " / "1. ",
+  // sub-items indented by 2 spaces, blank line = new paragraph
   // =====================================================================
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const LIST_RE = /^\s*(?:[-*]|\d+[.)]) /;
@@ -139,18 +134,34 @@
     return `<${tag}>${html}</${tag}>`;
   }
 
+  const TABLE_RE = /^\s*\|.*\|\s*$/;
+  function renderTable(rows) {
+    const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+    const body = rows.filter(r => !/^\s*\|[\s:|-]+\|\s*$/.test(r));   // drop |---| separator
+    const [head, ...rest] = body;
+    return '<div class="table-wrap"><table><thead><tr>' +
+      cells(head).map(c => `<th>${fmt(c)}</th>`).join('') + '</tr></thead><tbody>' +
+      rest.map(r => '<tr>' + cells(r).map(c => `<td>${fmt(c)}</td>`).join('') + '</tr>').join('') +
+      '</tbody></table></div>';
+  }
+
   function renderBlock(block) {
     let out = '';
     let para = [];
     let list = [];
+    let table = [];
     const flushP = () => { if (para.length) { out += '<p>' + para.map(fmt).join('<br>') + '</p>'; para = []; } };
     const flushL = () => { if (list.length) { out += renderList(list); list = []; } };
+    const flushT = () => { if (table.length) { out += renderTable(table); table = []; } };
     block.split('\n').forEach(l => {
-      if (LIST_RE.test(l)) { flushP(); list.push(l); }
-      else if (l.trim()) { flushL(); para.push(l); }
+      if (TABLE_RE.test(l)) { flushP(); flushL(); table.push(l); }
+      else if (LIST_RE.test(l)) { flushP(); flushT(); list.push(l); }
+      else if (list.length && /^\s{2,}\S/.test(l)) { list[list.length - 1] += ' ' + l.trim(); } // continuation line
+      else if (l.trim()) { flushL(); flushT(); para.push(l); }
     });
     flushP();
     flushL();
+    flushT();
     return out;
   }
 
@@ -165,17 +176,29 @@
       i % 2 === 0 ? inline(part) : '<pre><code>' + esc(part.replace(/\n$/, '')) + '</code></pre>').join('');
   }
 
+  // followUps: string or { q, a }
+  const fuQ = f => (typeof f === 'string' ? f : f.q);
+  const fuA = f => (typeof f === 'string' ? '' : f.a || '');
+
   function answerHtml(q) {
-    let html = md(q.answer);
+    let html = '';
+    if (q.tldr) html += `<div class="tldr"><span class="tldr-label">TL;DR</span>${fmt(q.tldr)}</div>`;
+    html += md(q.answer);
     if (Array.isArray(q.followUps) && q.followUps.length) {
-      html += '<div class="followups"><strong>Możliwe dopytania</strong><ul>' +
-        q.followUps.map(f => '<li>' + fmt(f) + '</li>').join('') + '</ul></div>';
+      html += '<div class="followups"><strong>Likely follow-up questions</strong>' +
+        q.followUps.map(f => fuA(f)
+          ? `<details class="fu"><summary>${fmt(fuQ(f))}</summary><div class="fu-a">${md(fuA(f))}</div></details>`
+          : `<div class="fu-plain">${fmt(fuQ(f))}</div>`).join('') +
+        '</div>';
     }
     return html;
   }
 
+  const searchText = q => [q.question, q.tldr, q.answer, q.category,
+    ...(q.followUps || []).map(f => fuQ(f) + ' ' + fuA(f))].join(' ').toLowerCase();
+
   // =====================================================================
-  // FILTRY
+  // FILTERS
   // =====================================================================
   function chip(html, active, onClick) {
     const b = document.createElement('button');
@@ -202,7 +225,7 @@
 
     const cat = $('#category-filters');
     cat.replaceChildren(
-      chip('Wszystkie', filters.categories.size === 0, () => { filters.categories.clear(); onFiltersChange(); }),
+      chip('All', filters.categories.size === 0, () => { filters.categories.clear(); onFiltersChange(); }),
       ...levelCategories().map(c => {
         const n = QUESTIONS.filter(q => q.category === c && inLevel(q)).length;
         return chip(`${esc(c)} ${count(n)}`, filters.categories.has(c), () => { toggle(filters.categories, c); onFiltersChange(); });
@@ -211,15 +234,15 @@
 
     const dif = $('#difficulty-filters');
     dif.replaceChildren(
-      chip('Każda', filters.difficulty.size === 0, () => { filters.difficulty.clear(); onFiltersChange(); }),
+      chip('Any', filters.difficulty.size === 0, () => { filters.difficulty.clear(); onFiltersChange(); }),
       ...[1, 2, 3].map(d => chip(DIFF[d], filters.difficulty.has(d), () => { toggle(filters.difficulty, d); onFiltersChange(); })),
     );
 
     const parts = [LEVELS[filters.level]];
     if (filters.categories.size === 1) parts.push([...filters.categories][0]);
-    else if (filters.categories.size > 1) parts.push(`${filters.categories.size} kategorie`);
+    else if (filters.categories.size > 1) parts.push(`${filters.categories.size} categories`);
     if (filters.difficulty.size) parts.push([...filters.difficulty].sort().map(d => DIFF[d]).join(', '));
-    parts.push(pytan(filtered().length));
+    parts.push(nq(filtered().length));
     $('#filters-summary').textContent = parts.join(' · ');
   }
 
@@ -232,16 +255,16 @@
   }
 
   // =====================================================================
-  // SESJA NAUKI
+  // STUDY SESSION
   // =====================================================================
   let queue = [];
   let current = null;
   let sessionIds = [];
-  let results = {};   // id -> ostatnia ocena w tej sesji
+  let results = {};   // id -> last rating in this session
   let revealed = false;
 
   function startSession() {
-    // najpierw najsłabiej opanowane, przy remisie najdawniej widziane; nowe losowo
+    // weakest first, then least recently seen; new questions in random order
     const pool = shuffle(filtered()).sort((a, b) => boxOf(a) - boxOf(b) || lastSeenOf(a) - lastSeenOf(b));
     queue = pool.slice(0, SESSION_SIZE);
     sessionIds = queue.map(q => q.id);
@@ -254,7 +277,7 @@
     const remaining = new Set(queue.map(q => q.id).concat(current ? [current.id] : [])).size;
     const done = total - remaining;
     $('#session-bar').style.width = total ? `${(done / total) * 100}%` : '0';
-    $('#session-info').textContent = current ? `Pytanie ${done + 1} z ${total}` : (total ? `Ukończono ${total} z ${total}` : '');
+    $('#session-info').textContent = current ? `Question ${done + 1} of ${total}` : (total ? `Completed ${total} of ${total}` : '');
   }
 
   function next() {
@@ -271,7 +294,7 @@
     const card = $('#card');
     card.classList.remove('revealed');
     card.style.animation = 'none';
-    void card.offsetWidth; // restart animacji
+    void card.offsetWidth; // restart animation
     card.style.animation = '';
 
     $('#card-level').hidden = levelOf(current) !== 'senior';
@@ -280,7 +303,7 @@
     $('#card-difficulty').textContent = DIFF[d] || '';
     $('#card-difficulty').className = 'badge d' + d;
     $('#card-box').innerHTML = boxDots(current);
-    $('#card-box').title = `Poziom opanowania: ${boxOf(current)}/${MAX_BOX}`;
+    $('#card-box').title = `Mastery level: ${boxOf(current)}/${MAX_BOX}`;
     $('#card-question').textContent = current.question;
     $('#card-answer').innerHTML = answerHtml(current);
     $('#card-answer').hidden = true;
@@ -298,8 +321,8 @@
     $('#done-stats').hidden = !total;
     if (!total) {
       $('#done-emoji').textContent = '🔍';
-      $('#done-title').textContent = 'Brak pytań';
-      $('#done-text').textContent = 'Żadne pytanie nie pasuje do wybranych filtrów. Zmień je powyżej.';
+      $('#done-title').textContent = 'No questions';
+      $('#done-text').textContent = 'No question matches the selected filters. Adjust them above.';
       return;
     }
     const vals = Object.values(results);
@@ -308,12 +331,12 @@
     const bad = vals.filter(v => v === 0).length;
     const ratio = total ? good / total : 0;
     $('#done-emoji').textContent = ratio >= 0.8 ? '🏆' : ratio >= 0.5 ? '🎉' : '💪';
-    $('#done-title').textContent = ratio >= 0.8 ? 'Świetna robota!' : ratio >= 0.5 ? 'Dobra sesja!' : 'Sesja zakończona';
-    $('#done-text').textContent = `Przerobione: ${pytan(total)}. Postęp zapisany na tym urządzeniu.`;
+    $('#done-title').textContent = ratio >= 0.8 ? 'Outstanding!' : ratio >= 0.5 ? 'Nice session!' : 'Session complete';
+    $('#done-text').textContent = `You went through ${nq(total)}. Progress is saved on this device.`;
     $('#done-stats').innerHTML = `
-      <div class="good"><strong>${good}</strong><span>Umiem</span></div>
-      <div class="mid"><strong>${mid}</strong><span>Tak sobie</span></div>
-      <div class="bad"><strong>${bad}</strong><span>Do powtórki</span></div>`;
+      <div class="good"><strong>${good}</strong><span>Nailed it</span></div>
+      <div class="mid"><strong>${mid}</strong><span>Partly</span></div>
+      <div class="bad"><strong>${bad}</strong><span>To review</span></div>`;
   }
 
   function reveal() {
@@ -333,7 +356,7 @@
     p.lastSeen = Date.now();
     if (r === 0) {
       p.box = 0;
-      queue.splice(Math.min(3, queue.length), 0, current); // wróci za chwilę
+      queue.splice(Math.min(3, queue.length), 0, current); // comes back shortly
     } else if (r === 1) {
       p.box = Math.max(1, p.box || 0);
     } else {
@@ -352,13 +375,12 @@
   }
 
   // =====================================================================
-  // PRZEGLĄDANIE
+  // BROWSE
   // =====================================================================
   function renderBrowse() {
     const term = $('#search').value.trim().toLowerCase();
-    const items = filtered().filter(q =>
-      !term || [q.question, q.answer, q.category, ...(q.followUps || [])].join(' ').toLowerCase().includes(term));
-    $('#browse-count').textContent = `Znaleziono: ${pytan(items.length)}`;
+    const items = filtered().filter(q => !term || searchText(q).includes(term));
+    $('#browse-count').textContent = `Found: ${nq(items.length)}`;
     $('#list').innerHTML = items.map(q => `
       <details>
         <summary>
@@ -367,7 +389,7 @@
             ${levelOf(q) === 'senior' ? '<span class="badge badge-senior">Senior</span>' : ''}
             <span class="badge badge-cat">${esc(q.category)}</span>
             <span class="badge d${diffOf(q)}">${DIFF[diffOf(q)] || ''}</span>
-            <span class="box-dots" title="Poziom opanowania: ${boxOf(q)}/${MAX_BOX}">${boxDots(q)}</span>
+            <span class="box-dots" title="Mastery level: ${boxOf(q)}/${MAX_BOX}">${boxDots(q)}</span>
           </span>
         </summary>
         <div class="answer">${answerHtml(q)}</div>
@@ -375,7 +397,7 @@
   }
 
   // =====================================================================
-  // STATYSTYKI
+  // STATS
   // =====================================================================
   function bucket(list) {
     let good = 0, mid = 0;
@@ -388,7 +410,7 @@
 
   function streak() {
     const d = new Date();
-    if (!activity.days[dayKey(d)]) d.setDate(d.getDate() - 1); // dziś jeszcze nic? liczymy od wczoraj
+    if (!activity.days[dayKey(d)]) d.setDate(d.getDate() - 1); // nothing today yet? count from yesterday
     let n = 0;
     while (activity.days[dayKey(d)]) { n++; d.setDate(d.getDate() - 1); }
     return n;
@@ -430,7 +452,7 @@
   }
 
   // =====================================================================
-  // RESET / EKSPORT / IMPORT
+  // RESET / EXPORT / IMPORT
   // =====================================================================
   function refreshAfterDataChange() {
     renderMasteryPill();
@@ -441,23 +463,23 @@
   }
 
   function resetAll() {
-    if (!confirm('Na pewno usunąć CAŁY postęp nauki i statystyki? Tej operacji nie da się cofnąć.')) return;
+    if (!confirm('Delete ALL study progress and stats? This cannot be undone.')) return;
     progress = {};
     activity = { days: {} };
     saveProgress();
     saveJSON(KEYS.activity, activity);
     refreshAfterDataChange();
-    toast('Postęp wyczyszczony');
+    toast('Progress cleared');
   }
 
   function resetFiltered() {
     const ids = filtered().map(q => q.id).filter(id => progress[id]);
-    if (!ids.length) return toast('Brak postępu do zresetowania w tych filtrach');
-    if (!confirm(`Zresetować postęp dla ${pytan(ids.length)} z aktualnych filtrów?`)) return;
+    if (!ids.length) return toast('No progress to reset for these filters');
+    if (!confirm(`Reset progress for ${nq(ids.length)} matching the current filters?`)) return;
     ids.forEach(id => delete progress[id]);
     saveProgress();
     refreshAfterDataChange();
-    toast(`Zresetowano ${pytan(ids.length)}`);
+    toast(`Reset ${nq(ids.length)}`);
   }
 
   function exportProgress() {
@@ -465,12 +487,12 @@
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `rekru-postep-${dayKey()}.json`;
+    a.download = `rekru-progress-${dayKey()}.json`;
     document.body.append(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    toast('Zapisano plik z postępem');
+    toast('Progress file saved');
   }
 
   function importProgress(file) {
@@ -478,28 +500,29 @@
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result);
-        if (!data || typeof data.progress !== 'object' || data.progress === null) throw new Error('brak pola "progress"');
-        if (!confirm('Import zastąpi obecny postęp na tym urządzeniu. Kontynuować?')) return;
+        if (!data || typeof data.progress !== 'object' || data.progress === null) throw new Error('missing "progress" field');
+        if (!confirm('Importing will replace the current progress on this device. Continue?')) return;
         progress = data.progress;
         activity = data.activity && typeof data.activity.days === 'object' ? data.activity : { days: {} };
         saveProgress();
         saveJSON(KEYS.activity, activity);
         refreshAfterDataChange();
-        toast('Postęp zaimportowany');
+        toast('Progress imported');
       } catch (e) {
-        alert('Nie udało się wczytać pliku: ' + e.message);
+        alert('Could not read the file: ' + e.message);
       }
     };
     reader.readAsText(file);
   }
 
   // =====================================================================
-  // WIDOKI
+  // VIEWS
   // =====================================================================
   function showView(name) {
     if (!['learn', 'browse', 'stats'].includes(name)) name = 'learn';
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'view-' + name; });
+    document.body.classList.toggle('learn-active', name === 'learn');
     if (name === 'stats') renderStats();
     if (name === 'browse') renderBrowse();
     try { localStorage.setItem(KEYS.view, name); } catch { /* ignore */ }
@@ -507,7 +530,7 @@
   }
 
   // =====================================================================
-  // ZDARZENIA
+  // EVENTS
   // =====================================================================
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
   $('#reveal').addEventListener('click', reveal);
@@ -518,7 +541,7 @@
     const b = e.target.closest('[data-rate]');
     if (b) rate(Number(b.dataset.rate));
   });
-  $('#restart').addEventListener('click', () => { startSession(); toast('Nowa sesja'); });
+  $('#restart').addEventListener('click', () => { startSession(); toast('New session'); });
   $('#done-restart').addEventListener('click', startSession);
   $('#search').addEventListener('input', renderBrowse);
   $('#export').addEventListener('click', exportProgress);
@@ -553,5 +576,5 @@
   let initialView = 'learn';
   try { initialView = localStorage.getItem(KEYS.view) || 'learn'; } catch { /* ignore */ }
   showView(initialView);
-  if (!storageOk) toast('⚠ Przeglądarka blokuje zapis: postęp nie zostanie zapamiętany');
+  if (!storageOk) toast('⚠ Your browser blocks storage: progress will not be saved');
 })();
