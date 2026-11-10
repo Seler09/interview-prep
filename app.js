@@ -49,19 +49,50 @@
   // ---------- mini markdown (```kod```, `kod`, **pogrubienie**, listy "- ") ----------
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  const LIST_RE = /^\s*(?:[-*]|\d+[.)]) /;
+  const fmt = l => esc(l.trim())
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // lista z jednym poziomem zagnieżdżenia (podpunkty wcięte min. 2 spacjami)
+  function renderList(lines) {
+    const tag = /^\s*\d/.test(lines[0]) ? 'ol' : 'ul';
+    let html = '';
+    let inSub = false;
+    lines.forEach((l, i) => {
+      const text = fmt(l.replace(LIST_RE, ''));
+      if (/^\s{2,}/.test(l) && i > 0) {
+        if (!inSub) { html = html.replace(/<\/li>$/, '') + '<ul>'; inSub = true; }
+        html += '<li>' + text + '</li>';
+      } else {
+        if (inSub) { html += '</ul></li>'; inSub = false; }
+        html += '<li>' + text + '</li>';
+      }
+    });
+    if (inSub) html += '</ul></li>';
+    return `<${tag}>${html}</${tag}>`;
+  }
+
+  // blok = akapity i listy przemieszane linia po linii
+  function renderBlock(block) {
+    let out = '';
+    let para = [];
+    let list = [];
+    const flushP = () => { if (para.length) { out += '<p>' + para.map(fmt).join('<br>') + '</p>'; para = []; } };
+    const flushL = () => { if (list.length) { out += renderList(list); list = []; } };
+    block.split('\n').forEach(l => {
+      if (LIST_RE.test(l)) { flushP(); list.push(l); }
+      else if (l.trim()) { flushL(); para.push(l); }
+    });
+    flushP();
+    flushL();
+    return out;
+  }
+
   function inline(text) {
     const t = text.trim();
     if (!t) return '';
-    return t.split(/\n\s*\n/).map(block => {
-      const lines = block.split('\n').map(l =>
-        esc(l)
-          .replace(/`([^`]+)`/g, '<code>$1</code>')
-          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'));
-      if (lines.every(l => /^\s*[-*] /.test(l))) {
-        return '<ul>' + lines.map(l => '<li>' + l.replace(/^\s*[-*] /, '') + '</li>').join('') + '</ul>';
-      }
-      return '<p>' + lines.join('<br>') + '</p>';
-    }).join('');
+    return t.split(/\n\s*\n/).map(renderBlock).join('');
   }
 
   function md(src) {
@@ -70,6 +101,16 @@
     parts.forEach((part, i) => {
       html += i % 2 === 0 ? inline(part) : '<pre><code>' + esc(part.replace(/\n$/, '')) + '</code></pre>';
     });
+    return html;
+  }
+
+  function answerHtml(q) {
+    let html = md(q.answer);
+    if (Array.isArray(q.followUps) && q.followUps.length) {
+      html += '<div class="followups"><strong>Możliwe dopytania:</strong><ul>' +
+        q.followUps.map(f => '<li>' + inline(f).replace(/^<p>|<\/p>$/g, '') + '</li>').join('') +
+        '</ul></div>';
+    }
     return html;
   }
 
@@ -145,7 +186,7 @@
     $('#card-difficulty').className = 'badge d' + d;
     $('#card-box').textContent = `Opanowanie: ${boxOf(current)}/${MAX_BOX}`;
     $('#card-question').textContent = current.question;
-    $('#card-answer').innerHTML = md(current.answer);
+    $('#card-answer').innerHTML = answerHtml(current);
     $('#card-answer').hidden = true;
     $('#reveal').hidden = false;
     $('#rate').hidden = true;
@@ -181,7 +222,7 @@
   function renderBrowse() {
     const term = $('#search').value.trim().toLowerCase();
     const items = filtered().filter(q =>
-      !term || (q.question + ' ' + (q.answer || '') + ' ' + q.category).toLowerCase().includes(term));
+      !term || [q.question, q.answer, q.category, ...(q.followUps || [])].join(' ').toLowerCase().includes(term));
     $('#browse-count').textContent = `Pytań: ${items.length}`;
     $('#list').innerHTML = items.map(q => `
       <details>
@@ -191,7 +232,7 @@
           <span class="badge d${diffOf(q)}">${DIFF[diffOf(q)] || ''}</span>
           <span class="badge subtle">Opanowanie: ${boxOf(q)}/${MAX_BOX}</span>
         </div>
-        <div class="answer">${md(q.answer)}</div>
+        <div class="answer">${answerHtml(q)}</div>
       </details>`).join('');
   }
 

@@ -103,6 +103,10 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .answer p { margin: 0 0 .8em; }
 .answer ul { margin: 0 0 .8em; padding-left: 1.3em; }
 .answer li { margin: .2em 0; }
+.answer ol { margin: 0 0 .8em; padding-left: 1.5em; }
+.answer li > ul { margin: .2em 0 0; }
+.followups { margin-top: 14px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; }
+.followups ul { margin: 6px 0 0; }
 
 code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .9em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
 pre { background: var(--code-bg); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; overflow-x: auto; margin: 0 0 .8em; }

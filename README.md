@@ -12,7 +12,9 @@ Prosta aplikacja z fiszkami do nauki przed rekrutacją. To czysty HTML, CSS i JS
 Otwórz `index.html` w przeglądarce (dwuklik). Serwer nie jest potrzebny.
 
 ## Dodawanie pytań
-Edytuj `questions.js`. Format jest opisany w komentarzu na górze pliku.
+- `questions.js`: pytania podstawowe. Format jest opisany w komentarzu na górze pliku.
+- `questions-senior.js`: pytania na poziomie senior (system design, systemy rozproszone, architektura, bazy danych, bezpieczeństwo, DevOps, leadership…).
+  Opcjonalne pole `followUps` zawiera listę pytań pogłębiających, które rekruter może zadać.
 
 ## Hosting na GitHub Pages
 ```bash
