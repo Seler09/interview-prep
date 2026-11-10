@@ -62,11 +62,10 @@
 
 /* ============ BASE ============ */
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: 80px; }
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   font: 16px/1.6 var(--font);
@@ -93,16 +92,33 @@ button { cursor: pointer; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
 
-/* ============ LAYOUT ============ */
-/* Normal page scrolling. The bottom dock (answer/rating bar + mobile nav) is fixed to the
-   bottom of the screen; app.js measures it into --dock-h so content never hides under it. */
-html { touch-action: manipulation; }          /* no double-tap zoom (it misplaces fixed bars on iOS) */
-body { padding-bottom: var(--dock-h, 0px); overflow-x: hidden; }
-.dock {
+/* ============ LAYOUT (APP SHELL) ============ */
+/* The document itself never scrolls. .app is pinned to the viewport (position: fixed; inset: 0)
+   and laid out as a column: header, a scrollable content area (#scroller) and the bottom dock.
+   Why: iOS Safari/Chrome (notably iOS 26) move position:fixed bottom bars while the browser
+   toolbar collapses during page scroll, so the dock drifted up the screen. When only an inner
+   element scrolls, the toolbar never collapses and the bars cannot move. */
+html { touch-action: manipulation; }          /* no double-tap zoom */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+.app {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-padding-top: 12px;
+}
+.dock {
+  flex: none;
+  position: relative;
   z-index: 30;
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -121,8 +137,8 @@ body:not(.has-actions) .dock { display: none; }
 
 /* ============ TOPBAR / NAV ============ */
 .topbar {
-  position: sticky;
-  top: 0;
+  flex: none;
+  position: relative;
   z-index: 20;
   background: var(--bg);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
@@ -257,7 +273,7 @@ body:not(.has-actions) .dock { display: none; }
 .box-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-3); }
 .box-dots i.on { background: var(--good); }
 
-.question { font-size: 1.45rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; margin: 18px 0 0; white-space: pre-line; }
+.question { font-size: 1.45rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; margin: 18px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
 .tap-hint { margin: 22px 0 0; color: var(--muted); font-size: .88rem; }
 
 .answer { margin-top: 22px; padding-top: 20px; border-top: 1px dashed var(--border); animation: fade .25s ease; }
@@ -339,6 +355,7 @@ kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px soli
 
 .actions { padding: 12px 16px; }
 .actions > * { width: 100%; max-width: 828px; margin-left: auto; margin-right: auto; }
+.actions > .btn { display: flex; }            /* inline-flex ignores margin:auto, so the button sat on the left */
 .tabs-bottom { display: none; }
 .rate { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .rate-btn { min-height: 58px; border-width: 1.5px; }
@@ -380,11 +397,11 @@ kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px soli
 .list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .list > details { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
 .list > details[open] { box-shadow: var(--shadow-lg); }
-.list > details > summary { cursor: pointer; list-style: none; padding: 14px 16px; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; }
+.list > details > summary { cursor: pointer; list-style: none; padding: 14px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: start; }
 .list > details > summary::-webkit-details-marker { display: none; }
 .list > details > summary::before { content: ""; width: 8px; height: 8px; margin-top: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; }
 .list > details[open] > summary::before { transform: rotate(45deg); }
-.list .q { font-weight: 600; white-space: pre-line; }
+.list .q { font-weight: 600; white-space: pre-line; overflow-wrap: anywhere; }
 .list .meta { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .list .meta .box-dots { margin-left: 0; }
 .list .answer { margin: 0; padding: 4px 16px 16px 36px; border-top: 0; }

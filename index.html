@@ -15,11 +15,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Bump ?v= on every release so browsers don't mix cached old files with new ones -->
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
- <!-- App shell: header + scrollable content + bottom dock. No fixed/sticky positioning,
-      so the bars stay put on iOS Safari/Chrome while the browser toolbars show/hide. -->
+ <!-- App shell: .app is pinned to the viewport; only #scroller scrolls, so the header and the
+      bottom dock stay put on iOS Safari/Chrome (the browser toolbar never collapses). -->
  <div class="app">
   <header class="topbar">
     <div class="topbar-inner">
@@ -182,11 +182,17 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
  </div>
 
-  <script src="questions.js?v=7"></script>
-  <script src="questions-senior-design.js?v=7"></script>
-  <script src="questions-senior-data-arch.js?v=7"></script>
-  <script src="questions-senior-stack.js?v=7"></script>
-  <script src="questions-senior-ops-lead.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="questions.js?v=8"></script>
+  <script src="questions-senior-design.js?v=8"></script>
+  <script src="questions-senior-data-arch.js?v=8"></script>
+  <script src="questions-senior-stack.js?v=8"></script>
+  <script src="questions-senior-ops-lead.js?v=8"></script>
+  <script src="questions-dotnet-csharp.js?v=8"></script>
+  <script src="questions-dotnet-async-aspnet.js?v=8"></script>
+  <script src="questions-dotnet-data-arch.js?v=8"></script>
+  <script src="questions-dotnet-cloud-sec-test.js?v=8"></script>
+  <script src="questions-dotnet-design-coding.js?v=8"></script>
+  <script src="questions-dotnet-behavioral.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

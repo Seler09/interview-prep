@@ -19,7 +19,8 @@
   const MAX_BOX = 5;         // mastery levels (Leitner system)
   const MASTERED_BOX = 3;    // from this level a question counts as "mastered"
   const DIFF = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
-  const LEVELS = { all: 'All', basic: 'Fundamentals', senior: 'Senior' };
+  const LEVELS = { all: 'All', dotnet: '.NET', senior: 'Senior', basic: 'Fundamentals' };
+  const LEVEL_BADGE = { dotnet: '.NET', senior: 'Senior' };
 
   const $ = s => document.querySelector(s);
 
@@ -64,7 +65,7 @@
   // =====================================================================
   // HELPERS
   // =====================================================================
-  const levelOf = q => (q.level === 'senior' ? 'senior' : 'basic');
+  const levelOf = q => (LEVELS[q.level] && q.level !== 'all' ? q.level : 'basic');
   const diffOf = q => q.difficulty || 1;
   const boxOf = q => (progress[q.id] && progress[q.id].box) || 0;
   const lastSeenOf = q => (progress[q.id] && progress[q.id].lastSeen) || 0;
@@ -105,33 +106,9 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
   }
 
-  // keep --dock-h equal to the fixed bottom dock's height so page content always ends above it
+  // keep --dock-h equal to the bottom dock's height (the toast is positioned above it)
   function syncDock() {
     document.documentElement.style.setProperty('--dock-h', $('.dock').offsetHeight + 'px');
-    placeDock();
-  }
-
-  // When the page is pinch-zoomed, iOS keeps position:fixed elements attached to the
-  // (now off-screen) layout viewport, so the dock appears mid-screen. In that case pin it
-  // to the visible area (visual viewport) manually, at its normal size.
-  function placeDock() {
-    const vv = window.visualViewport;
-    const dock = $('.dock');
-    if (!vv || !dock) return;
-    if (vv.scale > 1.01) {
-      Object.assign(dock.style, {
-        top: '0px', bottom: 'auto', right: 'auto',
-        width: `${vv.width * vv.scale}px`,
-        transformOrigin: '0 0',
-        transform: `translate(${vv.offsetLeft}px, ${vv.offsetTop + vv.height}px) scale(${1 / vv.scale}) translateY(-100%)`,
-      });
-    } else if (dock.style.transform) {
-      Object.assign(dock.style, { top: '', bottom: '', right: '', width: '', transformOrigin: '', transform: '' });
-    }
-  }
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', placeDock);
-    window.visualViewport.addEventListener('scroll', placeDock);
   }
 
   // Auto-update: if a newer version is deployed, reload once with a cache-busting URL.
@@ -347,7 +324,9 @@
     void card.offsetWidth; // restart animation
     card.style.animation = '';
 
-    $('#card-level').hidden = levelOf(current) !== 'senior';
+    const badge = LEVEL_BADGE[levelOf(current)];
+    $('#card-level').hidden = !badge;
+    $('#card-level').textContent = badge || '';
     $('#card-category').textContent = current.category;
     const d = diffOf(current);
     $('#card-difficulty').textContent = DIFF[d] || '';
@@ -362,9 +341,9 @@
     $('#rate').hidden = true;
 
     // new question: if we scrolled down through a long answer, jump back to the card
-    const headerH = $('.topbar').offsetHeight;
-    const top = card.getBoundingClientRect().top;
-    if (top < headerH) window.scrollTo({ top: window.scrollY + top - headerH - 12, behavior: 'smooth' });
+    const scroller = $('#scroller');
+    const offset = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    if (offset < 0) scroller.scrollTo({ top: scroller.scrollTop + offset - 12, behavior: 'smooth' });
   }
 
   function showDone() {
@@ -438,7 +417,7 @@
         <summary>
           <span class="q">${esc(q.question)}</span>
           <span class="meta">
-            ${levelOf(q) === 'senior' ? '<span class="badge badge-senior">Senior</span>' : ''}
+            ${LEVEL_BADGE[levelOf(q)] ? `<span class="badge badge-senior">${LEVEL_BADGE[levelOf(q)]}</span>` : ''}
             <span class="badge badge-cat">${esc(q.category)}</span>
             <span class="badge d${diffOf(q)}">${DIFF[diffOf(q)] || ''}</span>
             <span class="box-dots" title="Mastery level: ${boxOf(q)}/${MAX_BOX}">${boxDots(q)}</span>
@@ -579,7 +558,7 @@
     if (name === 'stats') renderStats();
     if (name === 'browse') renderBrowse();
     try { localStorage.setItem(KEYS.view, name); } catch { /* ignore */ }
-    window.scrollTo({ top: 0 });
+    $('#scroller').scrollTo({ top: 0 });
   }
 
   // =====================================================================
@@ -597,6 +576,8 @@
   $('#restart').addEventListener('click', () => { startSession(); toast('New session'); });
   $('#done-restart').addEventListener('click', startSession);
   $('#search').addEventListener('input', renderBrowse);
+  // iOS may pan the (non-scrolling) document to show the keyboard and leave it shifted afterwards
+  $('#search').addEventListener('blur', () => { if (window.scrollY) window.scrollTo(0, 0); });
   $('#export').addEventListener('click', exportProgress);
   $('#import').addEventListener('change', e => {
     if (e.target.files[0]) importProgress(e.target.files[0]);
