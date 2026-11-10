@@ -101,6 +101,11 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
   }
 
+  // keep --dock-h equal to the fixed bottom dock's height so page content always ends above it
+  function syncDock() {
+    document.documentElement.style.setProperty('--dock-h', $('.dock').offsetHeight + 'px');
+  }
+
   function boxDots(q) {
     const b = boxOf(q);
     return Array.from({ length: MAX_BOX }, (_, i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('');
@@ -288,6 +293,7 @@
     $('#actions').hidden = !has;
     $('#done').hidden = has;
     document.body.classList.toggle('has-actions', has);
+    syncDock();
     updateSessionBar();
 
     if (!has) return showDone();
@@ -312,10 +318,10 @@
     $('#reveal').hidden = false;
     $('#rate').hidden = true;
 
-    // new question: bring the card into view inside the scroll container
-    const scroller = $('#scroller');
-    const offset = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
-    if (offset < 0) scroller.scrollTo({ top: scroller.scrollTop + offset - 12, behavior: 'smooth' });
+    // new question: if we scrolled down through a long answer, jump back to the card
+    const headerH = $('.topbar').offsetHeight;
+    const top = card.getBoundingClientRect().top;
+    if (top < headerH) window.scrollTo({ top: window.scrollY + top - headerH - 12, behavior: 'smooth' });
   }
 
   function showDone() {
@@ -526,10 +532,11 @@
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'view-' + name; });
     document.body.classList.toggle('learn-active', name === 'learn');
+    syncDock();
     if (name === 'stats') renderStats();
     if (name === 'browse') renderBrowse();
     try { localStorage.setItem(KEYS.view, name); } catch { /* ignore */ }
-    $('#scroller').scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
   }
 
   // =====================================================================
@@ -570,6 +577,9 @@
   // =====================================================================
   // START
   // =====================================================================
+  if ('ResizeObserver' in window) new ResizeObserver(syncDock).observe($('.dock'));
+  window.addEventListener('resize', syncDock);
+
   if (window.matchMedia('(min-width: 900px)').matches) $('#filters').open = true;
   renderFilters();
   renderMasteryPill();

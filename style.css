@@ -93,31 +93,20 @@ button { cursor: pointer; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
 
-/* ============ APP SHELL ============ */
-/* The page itself never scrolls: header + scroller + dock fill the viewport.
-   This avoids position:fixed/sticky bugs with mobile browser toolbars (iOS). */
-html, body { height: 100%; }
-body { overflow: hidden; }
-.app {
-  position: relative;
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-.scroller {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
+/* ============ LAYOUT ============ */
+/* Normal page scrolling. The bottom dock (answer/rating bar + mobile nav) is fixed to the
+   bottom of the screen; app.js measures it into --dock-h so content never hides under it. */
+html { touch-action: manipulation; }          /* no double-tap zoom (it misplaces fixed bars on iOS) */
+body { padding-bottom: var(--dock-h, 0px); overflow-x: hidden; }
 .dock {
-  flex: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -6px 18px rgba(20, 24, 50, .06);
+  box-shadow: 0 -6px 18px rgba(20, 24, 50, .08);
   padding-bottom: env(safe-area-inset-bottom);
 }
 body:not(.learn-active) .actions,
@@ -132,10 +121,10 @@ body:not(.has-actions) .dock { display: none; }
 
 /* ============ TOPBAR / NAV ============ */
 .topbar {
-  flex: none;
-  position: relative;
-  z-index: 2;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   padding-top: env(safe-area-inset-top);
 }
@@ -442,10 +431,10 @@ kbd { font-family: var(--mono); font-size: .7rem; opacity: .65; border: 1px soli
 
 /* ============ TOAST ============ */
 .toast {
-  position: absolute;               /* inside .app, which never scrolls */
+  position: fixed;
   left: 50%;
-  top: calc(72px + env(safe-area-inset-top));
-  transform: translate(-50%, -12px);
+  bottom: calc(var(--dock-h, 0px) + 16px);
+  transform: translate(-50%, 12px);
   background: var(--text);
   color: var(--bg);
   padding: 10px 18px;
