@@ -4,6 +4,10 @@
   // =====================================================================
   // CONFIG
   // =====================================================================
+  // version comes from this script's ?v= in index.html (single source of truth)
+  const APP_VERSION = (() => {
+    try { return new URL(document.currentScript.src).searchParams.get('v') || 'dev'; } catch { return 'dev'; }
+  })();
   const QUESTIONS = (window.QUESTIONS || []).filter(q => q && q.id && q.question);
   const KEYS = {
     progress: 'rekru:progress:v1',   // { [id]: { box, seen, lastSeen } }
@@ -104,6 +108,45 @@
   // keep --dock-h equal to the fixed bottom dock's height so page content always ends above it
   function syncDock() {
     document.documentElement.style.setProperty('--dock-h', $('.dock').offsetHeight + 'px');
+    placeDock();
+  }
+
+  // When the page is pinch-zoomed, iOS keeps position:fixed elements attached to the
+  // (now off-screen) layout viewport, so the dock appears mid-screen. In that case pin it
+  // to the visible area (visual viewport) manually, at its normal size.
+  function placeDock() {
+    const vv = window.visualViewport;
+    const dock = $('.dock');
+    if (!vv || !dock) return;
+    if (vv.scale > 1.01) {
+      Object.assign(dock.style, {
+        top: '0px', bottom: 'auto', right: 'auto',
+        width: `${vv.width * vv.scale}px`,
+        transformOrigin: '0 0',
+        transform: `translate(${vv.offsetLeft}px, ${vv.offsetTop + vv.height}px) scale(${1 / vv.scale}) translateY(-100%)`,
+      });
+    } else if (dock.style.transform) {
+      Object.assign(dock.style, { top: '', bottom: '', right: '', width: '', transformOrigin: '', transform: '' });
+    }
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', placeDock);
+    window.visualViewport.addEventListener('scroll', placeDock);
+  }
+
+  // Auto-update: if a newer version is deployed, reload once with a cache-busting URL.
+  function checkForUpdate() {
+    if (APP_VERSION === 'dev' || location.protocol === 'file:') return;
+    fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!data || !data.version || data.version === APP_VERSION) return;
+        const url = new URL(location.href);
+        if (url.searchParams.get('r') === data.version) return;   // already tried: avoid reload loops
+        url.searchParams.set('r', data.version);
+        location.replace(url.toString());
+      })
+      .catch(() => { /* offline: ignore */ });
   }
 
   function boxDots(q) {
@@ -589,5 +632,8 @@
   let initialView = 'learn';
   try { initialView = localStorage.getItem(KEYS.view) || 'learn'; } catch { /* ignore */ }
   showView(initialView);
+  $('#app-version').textContent = `App version ${APP_VERSION} · ${nq(QUESTIONS.length)}`;
+  checkForUpdate();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
   if (!storageOk) toast('⚠ Your browser blocks storage: progress will not be saved');
 })();

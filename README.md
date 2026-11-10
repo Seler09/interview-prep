@@ -60,4 +60,7 @@ Open `index.html` in a browser. No server needed.
 ## Deploy (GitHub Pages)
 Every push to `main` is published automatically (Settings → Pages → Deploy from a branch → `main` / root).
 
-**Cache busting:** when you change CSS or JS, bump the `?v=` number on the `<link>` and `<script>` tags in `index.html`. Otherwise browsers may combine a cached old file with the new page.
+**Releasing a new version:** bump the `?v=` number on the `<link>` and `<script>` tags in `index.html` **and** the `version` in `version.json` to the same value.
+- `?v=` prevents browsers from mixing cached old CSS/JS with a new page.
+- On start (and when the tab becomes visible again) the app fetches `version.json` without cache; if it differs from its own version it reloads once with a cache-busting URL, so phones pick up updates without a manual hard refresh.
+- The current version is shown at the bottom of the Progress tab.
