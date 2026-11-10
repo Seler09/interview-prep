@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pytania rekrutacyjne</title>
+  <meta name="description" content="Fiszki do nauki pytań rekrutacyjnych">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>🎯 Pytania rekrutacyjne</h1>
+    <nav class="tabs" role="tablist">
+      <button type="button" data-view="learn" class="active">Nauka</button>
+      <button type="button" data-view="browse">Przeglądaj</button>
+      <button type="button" data-view="stats">Postęp</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="filters" aria-label="Filtry">
+      <div id="category-filters" class="chips"></div>
+      <div id="difficulty-filters" class="chips"></div>
+    </section>
+
+    <!-- NAUKA -->
+    <section id="view-learn" class="view">
+      <div class="session-bar">
+        <span id="session-info"></span>
+        <button type="button" id="restart" class="ghost">↻ Nowa sesja</button>
+      </div>
+
+      <article id="card" class="card">
+        <div class="card-meta">
+          <span id="card-category" class="badge"></span>
+          <span id="card-difficulty" class="badge"></span>
+          <span id="card-box" class="badge subtle"></span>
+        </div>
+        <h2 id="card-question"></h2>
+        <div id="card-answer" class="answer" hidden></div>
+      </article>
+
+      <div id="actions" class="actions">
+        <button type="button" id="reveal" class="primary">Pokaż odpowiedź <kbd>Spacja</kbd></button>
+        <div id="rate" class="rate" hidden>
+          <button type="button" data-rate="0" class="bad">Nie umiem <kbd>1</kbd></button>
+          <button type="button" data-rate="1" class="mid">Tak sobie <kbd>2</kbd></button>
+          <button type="button" data-rate="2" class="good">Umiem <kbd>3</kbd></button>
+        </div>
+      </div>
+
+      <div id="done" class="done" hidden>
+        <p id="done-text"></p>
+        <button type="button" id="done-restart" class="primary">Kolejna sesja</button>
+      </div>
+    </section>
+
+    <!-- PRZEGLĄDANIE -->
+    <section id="view-browse" class="view" hidden>
+      <input id="search" type="search" placeholder="Szukaj w pytaniach i odpowiedziach…" autocomplete="off">
+      <p id="browse-count" class="muted"></p>
+      <div id="list" class="list"></div>
+    </section>
+
+    <!-- POSTĘP -->
+    <section id="view-stats" class="view" hidden>
+      <div id="stats"></div>
+      <div class="data-actions">
+        <button type="button" id="export">⬇ Eksportuj postęp</button>
+        <label class="button">⬆ Importuj postęp<input type="file" id="import" accept="application/json,.json" hidden></label>
+        <button type="button" id="reset" class="danger">Wyczyść postęp</button>
+      </div>
+      <p class="muted small">Postęp zapisuje się w przeglądarce (localStorage). Żeby przenieść go na inne urządzenie, użyj eksportu i importu.</p>
+    </section>
+  </main>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
